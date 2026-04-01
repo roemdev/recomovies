@@ -32,7 +32,6 @@ async function enterApp() {
   
   show('screen-search');
   
-  // Cargar las recomendaciones existentes al entrar
   await loadLatestRecommendations();
 }
 
@@ -59,19 +58,21 @@ async function loadLatestRecommendations() {
       return;
     }
 
-    // Mostrar solo las últimas 12
     const latest = recs.slice(0, 12);
     container.innerHTML = latest.map(m => {
       const poster = m.poster_path
         ? `<img src="https://image.tmdb.org/t/p/w342${m.poster_path}" alt="${m.title}" loading="lazy" />`
         : `<div class="jf-poster-ph">🎬</div>`;
       const year = m.release_date ? m.release_date.slice(0, 4) : '—';
+      
+      // Chequear si al dueño le gustó para mostrar el reflejo público
+      const reflectionClass = m.liked === true ? ' reflection-liked' : (m.liked === false ? ' reflection-disliked' : '');
 
       return `
-      <div class="jf-card already" title="Recomendada por ${m.recommended_by}">
-        <div class="jf-poster-wrap">
+      <div class="jf-card" title="Añadida por ${m.recommended_by}">
+        <div class="jf-poster-wrap${reflectionClass}">
           ${poster}
-          <div class="badge-added">Añadida</div>
+          <div class="badge-added">Sugerida</div>
         </div>
         <div class="jf-card-info">
           <div class="jf-card-title">${m.title}</div>
@@ -96,7 +97,6 @@ function handleSearch(val) {
   const latestSec = document.getElementById('latest-section');
   const resultsSec = document.getElementById('search-results-section');
   
-  // Manejo del botón limpiar
   if (val.length > 0) {
     clearBtn.classList.remove('hidden');
   } else {
@@ -107,13 +107,13 @@ function handleSearch(val) {
     document.getElementById('results-container').innerHTML = '';
     sp.classList.remove('active');
     resultsSec.classList.add('hidden');
-    latestSec.classList.remove('hidden'); // Mostrar latest de nuevo
+    latestSec.classList.remove('hidden');
     return;
   }
   
   sp.classList.add('active');
-  latestSec.classList.add('hidden'); // Ocultar latest
-  resultsSec.classList.remove('hidden'); // Mostrar resultados
+  latestSec.classList.add('hidden');
+  resultsSec.classList.remove('hidden');
   
   searchTimer = setTimeout(() => doSearch(val.trim()), 500);
 }
@@ -151,14 +151,15 @@ function renderResults(movies) {
       : `<div class="jf-poster-ph">🎬</div>`;
     
     const year = m.release_date ? m.release_date.slice(0, 4) : '—';
-    const alreadyBadge = already ? `<div class="badge-added">Añadida</div>` : '';
-    const alreadyClass = already ? ' already' : '';
+    // Si ya está recomendada, no hacemos hover, pero no le quitamos el color
+    const badge = already ? `<div class="badge-added">Ya añadida</div>` : '';
+    const clickAction = already ? '' : `selectMovie(${m.id})`;
 
     return `
-    <div class="jf-card${alreadyClass}" onclick="${already ? '' : `selectMovie(${m.id})`}">
+    <div class="jf-card" onclick="${clickAction}" style="${already ? 'cursor:default; opacity:0.6;' : ''}">
       <div class="jf-poster-wrap">
         ${poster}
-        ${alreadyBadge}
+        ${badge}
       </div>
       <div class="jf-card-info">
         <div class="jf-card-title" title="${m.title}">${m.title}</div>
@@ -171,7 +172,7 @@ function renderResults(movies) {
 }
 
 // ── Selección y Modal ────────────────────────────
-function selectMovie(id) {
+async function selectMovie(id) {
   selectedMovie = window._movieCache[id];
   if (!selectedMovie) return;
 
@@ -197,9 +198,11 @@ function selectMovie(id) {
   }
 
   document.getElementById('confirm-title').textContent = m.title;
-  const year = m.release_date ? m.release_date.slice(0, 4) : '—';
-  const rating = m.vote_average ? m.vote_average.toFixed(1) + ' ★' : '';
-  document.getElementById('confirm-meta').textContent = `${year} ${rating ? ' • ' + rating : ''}`;
+  const baseYear = m.release_date ? m.release_date.slice(0, 4) : '—';
+  const baseRating = m.vote_average ? m.vote_average.toFixed(1) + ' ★' : '';
+  
+  // Mostrar los datos básicos al instante mientras carga los detallados
+  document.getElementById('confirm-meta').innerHTML = `${baseYear} • ${baseRating} <span style="opacity:0.5; margin-left:10px;">Cargando más info...</span>`;
   document.getElementById('confirm-overview').textContent = m.overview ? m.overview : 'Sin sinopsis disponible en la base de datos.';
 
   const fb = document.getElementById('confirm-feedback');
@@ -207,6 +210,30 @@ function selectMovie(id) {
   document.getElementById('confirm-btn').disabled = false;
   
   document.getElementById('confirm-panel').classList.remove('hidden');
+
+  // Llamada extra a TMDB para obtener duración, género y edad recomendada
+  try {
+    const details = await tmdb.getMovieDetails(m.id);
+    const runtime = details.runtime ? `${details.runtime} min` : '';
+    const genres = details.genres ? details.genres.map(g => g.name).join(', ') : '';
+    
+    let cert = '';
+    if (details.release_dates && details.release_dates.results) {
+       // Buscar la clasificación en España (ES), México (MX) o USA (US)
+       const release = details.release_dates.results.find(r => r.iso_3166_1 === 'ES' || r.iso_3166_1 === 'MX' || r.iso_3166_1 === 'US');
+       if (release && release.release_dates.length > 0 && release.release_dates[0].certification) {
+          cert = `<span style="border: 1px solid var(--text-muted); padding: 1px 6px; border-radius: 4px; font-size: 0.8em; margin: 0 4px;">${release.release_dates[0].certification}</span>`;
+       }
+    }
+
+    const metaArray = [baseYear, cert, runtime, baseRating].filter(Boolean);
+    document.getElementById('confirm-meta').innerHTML = `
+      <div style="margin-bottom: 6px; display:flex; align-items:center; gap:8px;">${metaArray.join(' • ')}</div>
+      <div style="color: var(--text-muted); font-size: 0.9em;">${genres}</div>
+    `;
+  } catch(e) {
+    document.getElementById('confirm-meta').textContent = `${baseYear} • ${baseRating}`;
+  }
 }
 
 function cancelConfirm() {
@@ -226,7 +253,7 @@ async function submitRecommendation() {
     if (alreadyExists) {
       fb.textContent = 'Alguien ya sugirió esta película. Elige otra.';
       alreadyRecommendedIds.add(selectedMovie.id);
-      renderResults(Object.values(window._movieCache)); // Actualiza estado visual
+      renderResults(Object.values(window._movieCache));
       btn.disabled = false;
       return;
     }
@@ -255,11 +282,10 @@ async function submitRecommendation() {
 
 function recomendar() {
   selectedMovie = null;
-  clearSearch(); // Limpia input y vuelve a pantalla default
+  clearSearch();
   show('screen-search');
-  loadLatestRecommendations(); // Refresca las últimas añadidas
+  loadLatestRecommendations();
 }
 
-// Enter key
 document.getElementById('input-code')?.addEventListener('keydown', e => { if (e.key === 'Enter') enterApp(); });
 document.getElementById('input-name')?.addEventListener('keydown', e => { if (e.key === 'Enter') enterApp(); });

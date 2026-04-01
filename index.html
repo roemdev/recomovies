@@ -20,18 +20,18 @@
         <div class="brand-logo">
           <svg viewBox="0 0 24 24" fill="currentColor" class="logo-icon"><path d="M12 2L22 7L12 12L2 7L12 2ZM2 17L12 22L22 17V10.5L12 15.5L2 10.5V17Z"/></svg>
         </div>
-        <h1 class="title">Recomovie</h1>
-        <p class="hint">Conéctate al servidor para recomendar tu película favorita.</p>
+        <h1 class="title">Hola, soy Emivir.</h1>
+        <p class="hint">Recomiéndame una película para mi servidor y tal vez podamos verla juntos.</p>
         
         <div class="field-group">
           <div class="input-wrap">
-            <input type="text" id="input-name" placeholder="Nombre de usuario" autocomplete="off" />
+            <input type="text" id="input-name" placeholder="Tu nombre" autocomplete="off" />
           </div>
           <div class="input-wrap">
             <input type="password" id="input-code" placeholder="Código de acceso" />
           </div>
           <p id="code-error" class="error-msg"></p>
-          <button class="btn-main mt-4" onclick="enterApp()">Iniciar sesión</button>
+          <button class="btn-main mt-4" onclick="enterApp()">Acceder</button>
         </div>
       </div>
     </div>
@@ -59,10 +59,10 @@
 
     <main class="main-content">
       
-      <!-- Buscador tipo Hero -->
+      <!-- Buscador -->
       <div class="hero-search">
         <h1 class="hero-title">Sugerir Película</h1>
-        <p class="hero-subtitle">Busca y selecciona la película que quieres agregar a la lista.</p>
+        <p class="hero-subtitle">Busca y selecciona la película que quieres agregar a mi servidor.</p>
         
         <div class="search-box">
           <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -96,7 +96,6 @@
     <div class="modal-backdrop" onclick="cancelConfirm()"></div>
     <div class="modal-content slide-up">
       
-      <!-- Backdrop estilo Jellyfin -->
       <div class="modal-hero">
         <div id="confirm-backdrop" class="modal-hero-bg"></div>
         <div class="modal-hero-gradient"></div>
@@ -110,7 +109,8 @@
         
         <div class="modal-details">
           <h2 class="modal-title" id="confirm-title"></h2>
-          <div class="modal-meta" id="confirm-meta"></div>
+          <!-- Aquí insertamos todos los detalles dinámicos -->
+          <div class="modal-meta" id="confirm-meta">Cargando detalles...</div>
           
           <div class="confirm-actions mt-4">
             <button class="btn-main" id="confirm-btn" onclick="submitRecommendation()">
