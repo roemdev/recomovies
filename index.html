@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recomiéndame una peli</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- SCREEN: Código de acceso -->
+  <div id="screen-code" class="screen active">
+    <div class="noise"></div>
+    <div class="center-wrap">
+      <div class="brand">🎬</div>
+      <h1 class="title">Recomiéndame<br/>una peli</h1>
+      <p class="hint">Tu amigo quiere saber qué ver esta noche.</p>
+      <div class="field-group">
+        <input type="text" id="input-name" placeholder="Tu nombre" autocomplete="off" />
+        <input type="password" id="input-code" placeholder="Código de acceso" />
+        <button class="btn-main" onclick="enterApp()">Entrar →</button>
+      </div>
+      <p id="code-error" class="error-msg"></p>
+    </div>
+  </div>
+
+  <!-- SCREEN: Buscar y recomendar -->
+  <div id="screen-search" class="screen">
+    <div class="noise"></div>
+    <header class="top-bar">
+      <span class="top-logo">🎬 Recomiéndame</span>
+      <span class="top-user" id="top-user-name"></span>
+    </header>
+    <div class="search-wrap">
+      <h2 class="search-title">¿Qué película me recomiendas?</h2>
+      <div class="search-row">
+        <input type="text" id="search-input" placeholder="Busca por título..." oninput="handleSearch(this.value)" autocomplete="off" />
+        <div class="spinner" id="spinner"></div>
+      </div>
+      <div id="results-container"></div>
+      <div id="confirm-panel" class="confirm-panel hidden">
+        <div id="confirm-content"></div>
+        <div id="confirm-feedback"></div>
+        <div class="confirm-actions">
+          <button class="btn-main" id="confirm-btn" onclick="submitRecommendation()">Sí, esta es →</button>
+          <button class="btn-ghost" onclick="cancelConfirm()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN: Éxito -->
+  <div id="screen-success" class="screen">
+    <div class="noise"></div>
+    <div class="center-wrap">
+      <div class="success-icon">✓</div>
+      <h2 class="title" style="font-size: clamp(2rem, 6vw, 3.5rem);">¡Gracias!</h2>
+      <p class="hint" id="success-msg"></p>
+      <button class="btn-ghost" onclick="recomendar()">Recomendar otra</button>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="supabase.js"></script>
+  <script src="tmdb.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
