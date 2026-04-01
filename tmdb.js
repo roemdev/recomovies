@@ -19,13 +19,12 @@ const tmdb = {
     return (data.results || []).slice(0, 10);
   },
 
-  // Nueva función para extraer más detalles como la duración, géneros y clasificación PEGI
+  // Añadimos créditos (cast) y videos (tráilers) a la petición de detalles
   async getMovieDetails(id) {
     const url = new URL(`https://api.themoviedb.org/3/movie/${id}`);
     url.searchParams.set('language', CONFIG.TMDB_LANGUAGE);
     url.searchParams.set('api_key', CONFIG.TMDB_API_KEY);
-    // Agregamos release_dates para conseguir la clasificación por edad
-    url.searchParams.set('append_to_response', 'release_dates');
+    url.searchParams.set('append_to_response', 'release_dates,videos,credits');
 
     const res = await fetch(url.toString());
     if (!res.ok) throw new Error('Error al obtener los detalles');

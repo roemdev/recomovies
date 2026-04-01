@@ -20,7 +20,7 @@ async function enterApp() {
   const code = document.getElementById('input-code').value.trim();
   const errEl = document.getElementById('code-error');
 
-  if (!name) { errEl.textContent = 'Escribe tu nombre de usuario.'; return; }
+  if (!name) { errEl.textContent = 'Escribe tu nombre.'; return; }
   if (code !== CONFIG.ACCESS_CODE) { errEl.textContent = 'Código incorrecto.'; return; }
 
   errEl.textContent = '';
@@ -65,14 +65,26 @@ async function loadLatestRecommendations() {
         : `<div class="jf-poster-ph">🎬</div>`;
       const year = m.release_date ? m.release_date.slice(0, 4) : '—';
       
-      // Chequear si al dueño le gustó para mostrar el reflejo público
-      const reflectionClass = m.liked === true ? ' reflection-liked' : (m.liked === false ? ' reflection-disliked' : '');
+      // Chequeo dinámico para el badge y el reflejo (público)
+      let badgeText = "Sugerida";
+      let badgeClass = "badge-added";
+      let reflectionClass = "";
+
+      if (m.liked === true) {
+        badgeText = "✓ Me gustó";
+        badgeClass += " badge-liked";
+        reflectionClass = " reflection-liked";
+      } else if (m.liked === false) {
+        badgeText = "✕ No me gustó";
+        badgeClass += " badge-disliked";
+        reflectionClass = " reflection-disliked";
+      }
 
       return `
       <div class="jf-card" title="Añadida por ${m.recommended_by}">
         <div class="jf-poster-wrap${reflectionClass}">
           ${poster}
-          <div class="badge-added">Sugerida</div>
+          <div class="${badgeClass}">${badgeText}</div>
         </div>
         <div class="jf-card-info">
           <div class="jf-card-title">${m.title}</div>
@@ -151,7 +163,6 @@ function renderResults(movies) {
       : `<div class="jf-poster-ph">🎬</div>`;
     
     const year = m.release_date ? m.release_date.slice(0, 4) : '—';
-    // Si ya está recomendada, no hacemos hover, pero no le quitamos el color
     const badge = already ? `<div class="badge-added">Ya añadida</div>` : '';
     const clickAction = already ? '' : `selectMovie(${m.id})`;
 
@@ -198,10 +209,15 @@ async function selectMovie(id) {
   }
 
   document.getElementById('confirm-title').textContent = m.title;
+  
+  // Limpiar campos temporales
+  document.getElementById('confirm-tagline').textContent = '';
+  document.getElementById('confirm-cast').textContent = 'Cargando reparto...';
+  document.getElementById('confirm-trailer-btn').style.display = 'none';
+
   const baseYear = m.release_date ? m.release_date.slice(0, 4) : '—';
   const baseRating = m.vote_average ? m.vote_average.toFixed(1) + ' ★' : '';
   
-  // Mostrar los datos básicos al instante mientras carga los detallados
   document.getElementById('confirm-meta').innerHTML = `${baseYear} • ${baseRating} <span style="opacity:0.5; margin-left:10px;">Cargando más info...</span>`;
   document.getElementById('confirm-overview').textContent = m.overview ? m.overview : 'Sin sinopsis disponible en la base de datos.';
 
@@ -211,15 +227,22 @@ async function selectMovie(id) {
   
   document.getElementById('confirm-panel').classList.remove('hidden');
 
-  // Llamada extra a TMDB para obtener duración, género y edad recomendada
+  // Obtener datos ricos (Tráiler, duración, reparto y PEGI/Edad)
   try {
     const details = await tmdb.getMovieDetails(m.id);
+    
+    // Tagline (Eslogan original)
+    if (details.tagline) {
+      document.getElementById('confirm-tagline').textContent = `"${details.tagline}"`;
+    }
+
+    // Duración y géneros
     const runtime = details.runtime ? `${details.runtime} min` : '';
     const genres = details.genres ? details.genres.map(g => g.name).join(', ') : '';
     
+    // Buscar la clasificación en ES, MX o US
     let cert = '';
     if (details.release_dates && details.release_dates.results) {
-       // Buscar la clasificación en España (ES), México (MX) o USA (US)
        const release = details.release_dates.results.find(r => r.iso_3166_1 === 'ES' || r.iso_3166_1 === 'MX' || r.iso_3166_1 === 'US');
        if (release && release.release_dates.length > 0 && release.release_dates[0].certification) {
           cert = `<span style="border: 1px solid var(--text-muted); padding: 1px 6px; border-radius: 4px; font-size: 0.8em; margin: 0 4px;">${release.release_dates[0].certification}</span>`;
@@ -231,8 +254,28 @@ async function selectMovie(id) {
       <div style="margin-bottom: 6px; display:flex; align-items:center; gap:8px;">${metaArray.join(' • ')}</div>
       <div style="color: var(--text-muted); font-size: 0.9em;">${genres}</div>
     `;
+
+    // Extraer Reparto Principal (Top 5 actores)
+    if (details.credits && details.credits.cast) {
+      const topCast = details.credits.cast.slice(0, 5).map(c => c.name).join(', ');
+      document.getElementById('confirm-cast').textContent = topCast || 'Información no disponible.';
+    } else {
+      document.getElementById('confirm-cast').textContent = 'Información no disponible.';
+    }
+
+    // Buscar el Tráiler oficial de YouTube
+    if (details.videos && details.videos.results) {
+      const trailer = details.videos.results.find(v => v.type === 'Trailer' && v.site === 'YouTube');
+      if (trailer) {
+        const trailerBtn = document.getElementById('confirm-trailer-btn');
+        trailerBtn.href = `https://www.youtube.com/watch?v=${trailer.key}`;
+        trailerBtn.style.display = 'inline-flex';
+      }
+    }
+
   } catch(e) {
     document.getElementById('confirm-meta').textContent = `${baseYear} • ${baseRating}`;
+    document.getElementById('confirm-cast').textContent = 'Error al cargar la información.';
   }
 }
 
