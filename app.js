@@ -1,7 +1,6 @@
 // ── Estado ──────────────────────────────────────
 let currentUser = '';
 let selectedMovie = null;
-let searchTimer = null;
 let alreadyRecommendedIds = new Set();
 
 // ── Pantallas ────────────────────────────────────
@@ -10,19 +9,18 @@ function show(id) {
   document.getElementById(id).classList.add('active');
 }
 
-// ── Login con código ─────────────────────────────
+// ── Login ────────────────────────────────────────
 async function enterApp() {
   const name = document.getElementById('input-name').value.trim();
   const code = document.getElementById('input-code').value.trim();
   const errEl = document.getElementById('code-error');
 
   if (!name) { errEl.textContent = 'Escribe tu nombre.'; return; }
-  if (code !== CONFIG.ACCESS_CODE) { errEl.textContent = 'Código incorrecto. Pídele el código a tu amigo.'; return; }
+  if (code !== CONFIG.ACCESS_CODE) { errEl.textContent = 'Código incorrecto.'; return; }
 
   errEl.textContent = '';
   currentUser = name;
 
-  // Precarga IDs ya recomendados para chequear en tiempo real
   try {
     const recs = await db.getAll();
     alreadyRecommendedIds = new Set(recs.map(r => r.tmdb_id));
@@ -35,13 +33,25 @@ async function enterApp() {
   document.getElementById('search-input').focus();
 }
 
+function logoutToLogin() {
+  currentUser = '';
+  selectedMovie = null;
+  document.getElementById('input-name').value = '';
+  document.getElementById('input-code').value = '';
+  document.getElementById('code-error').textContent = '';
+  show('screen-code');
+}
+
 // ── Búsqueda ─────────────────────────────────────
+let searchTimer = null;
+
 function handleSearch(val) {
   clearTimeout(searchTimer);
   cancelConfirm();
   const sp = document.getElementById('spinner');
   if (!val.trim()) {
     document.getElementById('results-container').innerHTML = '';
+    document.getElementById('results-label').style.display = 'none';
     sp.classList.remove('active');
     return;
   }
@@ -57,16 +67,24 @@ async function doSearch(q) {
   } catch (e) {
     document.getElementById('spinner').classList.remove('active');
     document.getElementById('results-container').innerHTML =
-      `<p style="color:#e85a4f;font-size:.85rem;">Error conectando con TMDB. Verifica tu API key en config.js.</p>`;
+      `<p style="font-family:var(--font-m);font-size:.75rem;color:var(--accent2);">Error con TMDB. Verifica la API key en config.js.</p>`;
   }
 }
 
+window._movieCache = {};
+
 function renderResults(movies) {
   const container = document.getElementById('results-container');
+  const label = document.getElementById('results-label');
+
   if (!movies.length) {
-    container.innerHTML = '<p style="color:rgba(240,237,230,0.35);font-size:.85rem;">Sin resultados para esa búsqueda.</p>';
+    label.style.display = 'none';
+    container.innerHTML = '<p style="font-family:var(--font-m);font-size:.75rem;color:var(--dim);">Sin resultados.</p>';
     return;
   }
+
+  label.style.display = 'block';
+  movies.forEach(m => { window._movieCache[m.id] = m; });
 
   container.innerHTML = movies.map(m => {
     const already = alreadyRecommendedIds.has(m.id);
@@ -75,23 +93,17 @@ function renderResults(movies) {
       : `<div class="result-poster-ph">🎬</div>`;
     const year = m.release_date ? m.release_date.slice(0, 4) : '—';
     const rating = m.vote_average ? m.vote_average.toFixed(1) + ' ★' : '';
-    const alreadyBadge = already ? `<span class="already-badge">Ya recomendada</span>` : '';
-    const overview = m.overview ? `<div class="result-overview">${m.overview}</div>` : '';
-    const alreadyClass = already ? ' already' : '';
+    const alreadyBadge = already ? `<span class="already-tag">Ya recomendada</span>` : '';
 
-    return `<div class="result-item${alreadyClass}" onclick="${already ? '' : `selectMovie(${m.id})`}" data-id="${m.id}">
+    return `<div class="result-item${already ? ' already' : ''}" onclick="${already ? '' : `selectMovie(${m.id})`}" data-id="${m.id}">
       ${poster}
       <div class="result-body">
         <div class="result-title">${m.title}${alreadyBadge}</div>
         <div class="result-meta">${year}${rating ? ' · ' + rating : ''}</div>
-        ${overview}
+        ${m.overview ? `<div class="result-overview">${m.overview}</div>` : ''}
       </div>
     </div>`;
   }).join('');
-
-  // Guardar datos en memoria para el confirm
-  window._movieCache = {};
-  movies.forEach(m => { window._movieCache[m.id] = m; });
 }
 
 function selectMovie(id) {
@@ -103,26 +115,35 @@ function selectMovie(id) {
   });
 
   const m = selectedMovie;
-  const poster = m.poster_path
-    ? `<img class="confirm-poster" src="${tmdb.posterUrl(m.poster_path, 'w154')}" alt="" />`
-    : `<div class="confirm-poster-ph">🎬</div>`;
+  const posterUrl = m.poster_path ? tmdb.posterUrl(m.poster_path, 'w342') : null;
+
+  // Banner con blur
+  const blurEl = document.getElementById('confirm-blur');
+  if (posterUrl) {
+    blurEl.style.backgroundImage = `url(${posterUrl})`;
+  } else {
+    blurEl.style.backgroundImage = 'none';
+  }
+
+  // Poster frontal
+  const frontPoster = document.getElementById('confirm-front-poster');
+  frontPoster.innerHTML = posterUrl
+    ? `<img class="confirm-front-poster" src="${posterUrl}" alt="" />`
+    : `<div class="confirm-front-poster-ph">🎬</div>`;
+
+  document.getElementById('confirm-front-title').textContent = m.title;
   const year = m.release_date ? m.release_date.slice(0, 4) : '—';
   const rating = m.vote_average ? m.vote_average.toFixed(1) + ' ★' : '';
+  document.getElementById('confirm-front-meta').textContent = `${year}${rating ? ' · ' + rating : ''}`;
 
-  document.getElementById('confirm-content').innerHTML = `
-    <div class="confirm-movie-row">
-      ${poster}
-      <div>
-        <div class="confirm-title">${m.title}</div>
-        <div class="confirm-meta">${year}${rating ? ' · ' + rating : ''}</div>
-        <div class="confirm-overview">${m.overview ? m.overview.slice(0, 140) + '…' : ''}</div>
-      </div>
-    </div>`;
+  document.getElementById('confirm-overview').textContent =
+    m.overview ? m.overview.slice(0, 180) + (m.overview.length > 180 ? '…' : '') : 'Sin sinopsis disponible.';
 
   const fb = document.getElementById('confirm-feedback');
   fb.textContent = '';
   fb.className = 'confirm-feedback';
   document.getElementById('confirm-btn').disabled = false;
+
   document.getElementById('confirm-panel').classList.remove('hidden');
   document.getElementById('confirm-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
@@ -140,11 +161,10 @@ async function submitRecommendation() {
   const btn = document.getElementById('confirm-btn');
   btn.disabled = true;
 
-  // Doble-check en tiempo real por si otra persona recomendó mientras buscaba
   try {
     const alreadyExists = await db.exists(selectedMovie.id);
     if (alreadyExists) {
-      fb.textContent = 'Alguien ya recomendó esta película justo ahora. Elige otra.';
+      fb.textContent = 'Alguien ya la recomendó mientras buscabas. Elige otra.';
       fb.className = 'confirm-feedback error';
       alreadyRecommendedIds.add(selectedMovie.id);
       renderResults(Object.values(window._movieCache));
@@ -163,13 +183,12 @@ async function submitRecommendation() {
     });
 
     alreadyRecommendedIds.add(selectedMovie.id);
-
     document.getElementById('success-msg').textContent =
-      `"${selectedMovie.title}" ya está en la lista. ¡Gracias, ${currentUser}!`;
+      `"${selectedMovie.title}" ya está en la lista de tu amigo. ¡Gracias, ${currentUser}!`;
     show('screen-success');
 
   } catch (e) {
-    fb.textContent = 'Hubo un error al guardar. Inténtalo de nuevo.';
+    fb.textContent = 'Error al guardar. Inténtalo de nuevo.';
     fb.className = 'confirm-feedback error';
     btn.disabled = false;
   }
@@ -179,15 +198,13 @@ function recomendar() {
   selectedMovie = null;
   document.getElementById('search-input').value = '';
   document.getElementById('results-container').innerHTML = '';
+  document.getElementById('results-label').style.display = 'none';
   document.getElementById('confirm-panel').classList.add('hidden');
   show('screen-search');
   document.getElementById('search-input').focus();
 }
 
-// Enter key en los inputs de login
-document.getElementById('input-code').addEventListener('keydown', e => {
-  if (e.key === 'Enter') enterApp();
-});
-document.getElementById('input-name').addEventListener('keydown', e => {
-  if (e.key === 'Enter') enterApp();
+// Enter key
+['input-code', 'input-name'].forEach(id => {
+  document.getElementById(id)?.addEventListener('keydown', e => { if (e.key === 'Enter') enterApp(); });
 });

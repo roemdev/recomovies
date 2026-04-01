@@ -3,41 +3,73 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mi lista de películas</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <title>Mi lista — Recomiéndame</title>
   <link rel="stylesheet" href="style.css" />
 </head>
-<body class="panel-body">
+<body>
 
+  <!-- ── LOGIN PANEL ───────────────────────────── -->
   <div id="screen-panel-login" class="screen active">
-    <div class="noise"></div>
-    <div class="center-wrap">
-      <div class="brand">🎬</div>
-      <h1 class="title">Mi lista</h1>
-      <p class="hint">Accede con tu código de propietario.</p>
-      <div class="field-group">
-        <input type="password" id="owner-code-input" placeholder="Código de propietario" />
-        <button class="btn-main" onclick="ownerLogin()">Ver lista →</button>
+    <div class="login-layout">
+      <div class="login-art">
+        <div class="login-art-stripe"></div>
+        <div class="reel-grid" id="reel-grid"></div>
+        <div class="login-art-quote">
+          "Una película te hace reír, llorar,<br/>y luego recordarla para siempre."
+          <cite>— Tu watchlist</cite>
+        </div>
       </div>
-      <p id="owner-error" class="error-msg"></p>
+      <div class="login-form-side">
+        <div class="eyebrow">Acceso propietario</div>
+        <h1 class="login-title">MI<em>LISTA</em></h1>
+        <p class="login-sub">Accede para ver todas las películas que tus amigos te han recomendado.</p>
+        <div class="field">
+          <input type="password" id="owner-code-input" placeholder="Código de propietario" />
+        </div>
+        <button class="btn-main" onclick="ownerLogin()">Ver lista →</button>
+        <p id="owner-error" class="error-msg"></p>
+      </div>
     </div>
   </div>
 
+  <!-- ── PANEL MAIN ────────────────────────────── -->
   <div id="screen-panel-main" class="screen">
-    <div class="noise"></div>
+
     <header class="top-bar">
-      <span class="top-logo">🎬 Mi lista</span>
-      <div style="display:flex;gap:12px;align-items:center;">
+      <div class="top-logo">RECO<span>MIÉNDAME</span></div>
+      <div class="top-right">
         <span class="count-pill" id="rec-count">0 películas</span>
-        <button class="btn-ghost small" onclick="ownerLogout()">Salir</button>
+        <button class="btn-ghost sm" onclick="ownerLogout()">Salir</button>
       </div>
     </header>
-    <div class="panel-grid" id="panel-grid">
-      <div class="empty-state">Cargando...</div>
+
+    <div class="panel-filters">
+      <button class="filter-btn active" data-filter="all" onclick="setFilter('all', this)">Todas</button>
+      <button class="filter-btn f-downloaded" data-filter="downloaded" onclick="setFilter('downloaded', this)">↓ Descargadas</button>
+      <button class="filter-btn f-liked" data-filter="liked" onclick="setFilter('liked', this)">✓ Me gustó</button>
+      <button class="filter-btn f-disliked" data-filter="disliked" onclick="setFilter('disliked', this)">✕ No me gustó</button>
+      <button class="filter-btn" data-filter="pending" onclick="setFilter('pending', this)">⏳ Sin ver</button>
     </div>
+
+    <div class="panel-content">
+      <div class="section-label" id="section-label">Cargando…</div>
+      <div class="movie-grid" id="panel-grid">
+        <div class="empty-state">Cargando…</div>
+      </div>
+    </div>
+
   </div>
 
+  <script>
+    const rg = document.getElementById('reel-grid');
+    if (rg) {
+      for (let i = 0; i < 64; i++) {
+        const d = document.createElement('div');
+        d.className = 'reel-cell';
+        rg.appendChild(d);
+      }
+    }
+  </script>
   <script src="config.js"></script>
   <script src="supabase.js"></script>
   <script src="panel.js"></script>

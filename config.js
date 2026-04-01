@@ -13,10 +13,10 @@ const CONFIG = {
   TMDB_API_KEY: '9391272762e162086981cde79f9fe3d5',
 
   // URL de tu proyecto en Supabase (https://supabase.com → Settings → API)
-  SUPABASE_URL: 'https://oxywgtqdvykqftblrytg.supabase.co',
+  SUPABASE_URL: 'https://uapdqiiqogozegbmsdvi.supabase.co',
 
   // Clave pública (anon key) de Supabase
-  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94eXdndHFkdnlrcWZ0YmxyeXRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNDM0MDAsImV4cCI6MjA5MDYxOTQwMH0.j1G-hCPgFXEvHdCxNjMaddJQ4znkDiH51ougvQwuMvQ',
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhcGRxaWlxb2dvemVnYm1zZHZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNDA4MjcsImV4cCI6MjA5MDYxNjgyN30.rVe9AJFLD1N9uIBLiRhVmZWmgoiWa--BhFsKixh-3wY',
 
   // Idioma de resultados de TMDB ('es-ES', 'en-US', etc.)
   TMDB_LANGUAGE: 'es-MX',
