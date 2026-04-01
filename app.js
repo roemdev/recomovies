@@ -20,7 +20,7 @@ async function enterApp() {
   const code = document.getElementById('input-code').value.trim();
   const errEl = document.getElementById('code-error');
 
-  if (!name) { errEl.textContent = 'Escribe tu nombre.'; return; }
+  if (!name) { errEl.textContent = 'Escribe tu nombre de usuario.'; return; }
   if (code !== CONFIG.ACCESS_CODE) { errEl.textContent = 'Código incorrecto.'; return; }
 
   errEl.textContent = '';
@@ -64,27 +64,12 @@ async function loadLatestRecommendations() {
         ? `<img src="https://image.tmdb.org/t/p/w342${m.poster_path}" alt="${m.title}" loading="lazy" />`
         : `<div class="jf-poster-ph">🎬</div>`;
       const year = m.release_date ? m.release_date.slice(0, 4) : '—';
-      
-      // Chequeo dinámico para el badge y el reflejo (público)
-      let badgeText = "Sugerida";
-      let badgeClass = "badge-added";
-      let reflectionClass = "";
-
-      if (m.liked === true) {
-        badgeText = "✓ Me gustó";
-        badgeClass += " badge-liked";
-        reflectionClass = " reflection-liked";
-      } else if (m.liked === false) {
-        badgeText = "✕ No me gustó";
-        badgeClass += " badge-disliked";
-        reflectionClass = " reflection-disliked";
-      }
 
       return `
       <div class="jf-card" title="Añadida por ${m.recommended_by}">
-        <div class="jf-poster-wrap${reflectionClass}">
+        <div class="jf-poster-wrap">
           ${poster}
-          <div class="${badgeClass}">${badgeText}</div>
+          <div class="badge-added">Sugerida</div>
         </div>
         <div class="jf-card-info">
           <div class="jf-card-title">${m.title}</div>
@@ -210,7 +195,6 @@ async function selectMovie(id) {
 
   document.getElementById('confirm-title').textContent = m.title;
   
-  // Limpiar campos temporales
   document.getElementById('confirm-tagline').textContent = '';
   document.getElementById('confirm-cast').textContent = 'Cargando reparto...';
   document.getElementById('confirm-trailer-btn').style.display = 'none';
@@ -218,7 +202,7 @@ async function selectMovie(id) {
   const baseYear = m.release_date ? m.release_date.slice(0, 4) : '—';
   const baseRating = m.vote_average ? m.vote_average.toFixed(1) + ' ★' : '';
   
-  document.getElementById('confirm-meta').innerHTML = `${baseYear} • ${baseRating} <span style="opacity:0.5; margin-left:10px;">Cargando más info...</span>`;
+  document.getElementById('confirm-meta').innerHTML = `${baseYear} • ${baseRating} <span style="opacity:0.5; margin-left:10px;">Cargando información ampliada...</span>`;
   document.getElementById('confirm-overview').textContent = m.overview ? m.overview : 'Sin sinopsis disponible en la base de datos.';
 
   const fb = document.getElementById('confirm-feedback');
@@ -227,20 +211,19 @@ async function selectMovie(id) {
   
   document.getElementById('confirm-panel').classList.remove('hidden');
 
-  // Obtener datos ricos (Tráiler, duración, reparto y PEGI/Edad)
   try {
     const details = await tmdb.getMovieDetails(m.id);
     
-    // Tagline (Eslogan original)
     if (details.tagline) {
       document.getElementById('confirm-tagline').textContent = `"${details.tagline}"`;
     }
 
-    // Duración y géneros
     const runtime = details.runtime ? `${details.runtime} min` : '';
+    const formatMoney = num => num > 0 ? '$' + num.toLocaleString('en-US') : '';
+    const budget = details.budget ? `Presupuesto: ${formatMoney(details.budget)}` : '';
+    const revenue = details.revenue ? `Ingresos: ${formatMoney(details.revenue)}` : '';
     const genres = details.genres ? details.genres.map(g => g.name).join(', ') : '';
     
-    // Buscar la clasificación en ES, MX o US
     let cert = '';
     if (details.release_dates && details.release_dates.results) {
        const release = details.release_dates.results.find(r => r.iso_3166_1 === 'ES' || r.iso_3166_1 === 'MX' || r.iso_3166_1 === 'US');
@@ -250,22 +233,27 @@ async function selectMovie(id) {
     }
 
     const metaArray = [baseYear, cert, runtime, baseRating].filter(Boolean);
-    document.getElementById('confirm-meta').innerHTML = `
-      <div style="margin-bottom: 6px; display:flex; align-items:center; gap:8px;">${metaArray.join(' • ')}</div>
-      <div style="color: var(--text-muted); font-size: 0.9em;">${genres}</div>
-    `;
-
-    // Extraer Reparto Principal (Top 5 actores)
-    if (details.credits && details.credits.cast) {
-      const topCast = details.credits.cast.slice(0, 5).map(c => c.name).join(', ');
-      document.getElementById('confirm-cast').textContent = topCast || 'Información no disponible.';
-    } else {
-      document.getElementById('confirm-cast').textContent = 'Información no disponible.';
+    let extraInfoHtml = `<div style="margin-bottom: 6px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">${metaArray.join(' • ')}</div>
+      <div style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 4px;">${genres}</div>`;
+      
+    if (budget || revenue) {
+      const moneyData = [budget, revenue].filter(Boolean).join(' • ');
+      extraInfoHtml += `<div style="color: var(--text-muted); font-size: 0.85em; opacity: 0.8;">${moneyData}</div>`;
     }
 
-    // Buscar el Tráiler oficial de YouTube
+    document.getElementById('confirm-meta').innerHTML = extraInfoHtml;
+
+    if (details.credits && details.credits.cast) {
+      const topCast = details.credits.cast.slice(0, 5).map(c => c.name).join(', ');
+      document.getElementById('confirm-cast').textContent = topCast || 'Información de reparto no disponible.';
+    } else {
+      document.getElementById('confirm-cast').textContent = 'Información de reparto no disponible.';
+    }
+
     if (details.videos && details.videos.results) {
-      const trailer = details.videos.results.find(v => v.type === 'Trailer' && v.site === 'YouTube');
+      const youtubeVideos = details.videos.results.filter(v => v.site === 'YouTube');
+      const trailer = youtubeVideos.find(v => v.type === 'Trailer') || youtubeVideos.find(v => v.type === 'Teaser') || youtubeVideos[0];
+      
       if (trailer) {
         const trailerBtn = document.getElementById('confirm-trailer-btn');
         trailerBtn.href = `https://www.youtube.com/watch?v=${trailer.key}`;

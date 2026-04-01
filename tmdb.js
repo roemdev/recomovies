@@ -19,7 +19,6 @@ const tmdb = {
     return (data.results || []).slice(0, 10);
   },
 
-  // Añadimos créditos (cast) y videos (tráilers) a la petición de detalles
   async getMovieDetails(id) {
     const url = new URL(`https://api.themoviedb.org/3/movie/${id}`);
     url.searchParams.set('language', CONFIG.TMDB_LANGUAGE);

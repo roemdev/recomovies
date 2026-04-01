@@ -44,7 +44,6 @@ const db = {
     return res.json();
   },
 
-  // Actualiza campos de estado (downloaded, liked)
   async updateStatus(id, patch) {
     const res = await fetch(
       `${CONFIG.SUPABASE_URL}/rest/v1/recommendations?id=eq.${id}`,
@@ -57,6 +56,21 @@ const db = {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.message || 'Error actualizando estado');
+    }
+    return true;
+  },
+
+  async delete(id) {
+    const res = await fetch(
+      `${CONFIG.SUPABASE_URL}/rest/v1/recommendations?id=eq.${id}`,
+      {
+        method: 'DELETE',
+        headers: this.headers(),
+      }
+    );
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Error eliminando recomendación');
     }
     return true;
   }
