@@ -1,49 +1,72 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="jellyfin">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mi lista — Recomiéndame</title>
+  
+  <!-- Fuentes para todos los temas -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700;900&family=VT323&family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  
   <link rel="stylesheet" href="style.css" />
 </head>
-<body>
+<body class="panel-body">
+
+  <div class="theme-backgrounds">
+    <div class="bg-orb orb-cyan"></div>
+    <div class="bg-orb orb-purple"></div>
+    <div class="bg-orb orb-light"></div>
+    <div class="bg-noise"></div>
+    <div class="bg-crt-lines"></div>
+  </div>
+
+  <div class="theme-switcher">
+    <select id="theme-select" onchange="changeTheme(this.value)">
+      <option value="jellyfin">Tema: Jellyfin</option>
+      <option value="classic">Tema: Clásico</option>
+      <option value="apocalyptic">Tema: Apocalíptico</option>
+    </select>
+  </div>
 
   <!-- ── LOGIN PANEL ───────────────────────────── -->
   <div id="screen-panel-login" class="screen active">
-    <div class="login-layout">
-      <div class="login-art">
-        <div class="login-art-stripe"></div>
-        <div class="reel-grid" id="reel-grid"></div>
-        <div class="login-art-quote">
-          "Una película te hace reír, llorar,<br/>y luego recordarla para siempre."
-          <cite>— Tu watchlist</cite>
+    <div class="center-wrap fade-in">
+      <div class="glass-panel login-box slide-up">
+        <div class="glass-glare"></div>
+        <div class="brand-logo">🎬</div>
+        <h1 class="title">Mi <span class="text-accent">Lista</span></h1>
+        <p class="hint">Acceso de administrador del servidor.</p>
+        
+        <div class="field-group">
+          <div class="input-wrap">
+            <label>Código de Propietario</label>
+            <input type="password" id="owner-code-input" placeholder="Ingresa tu clave" />
+          </div>
+          <p id="owner-error" class="error-msg"></p>
+          <button class="btn-main mt-4" onclick="ownerLogin()">Acceder al panel</button>
         </div>
-      </div>
-      <div class="login-form-side">
-        <div class="eyebrow">Acceso propietario</div>
-        <h1 class="login-title">MI<em>LISTA</em></h1>
-        <p class="login-sub">Accede para ver todas las películas que tus amigos te han recomendado.</p>
-        <div class="field">
-          <input type="password" id="owner-code-input" placeholder="Código de propietario" />
-        </div>
-        <button class="btn-main" onclick="ownerLogin()">Ver lista →</button>
-        <p id="owner-error" class="error-msg"></p>
       </div>
     </div>
   </div>
 
   <!-- ── PANEL MAIN ────────────────────────────── -->
   <div id="screen-panel-main" class="screen">
-
-    <header class="top-bar">
-      <div class="top-logo">RECO<span>MIÉNDAME</span></div>
+    
+    <header class="top-bar glass-panel">
+      <div class="top-logo-wrap">
+        <div class="brand-logo small">🎬</div>
+        <span class="top-logo-text">Mi <span class="text-accent">Lista</span></span>
+      </div>
+      
       <div class="top-right">
         <span class="count-pill" id="rec-count">0 películas</span>
-        <button class="btn-ghost sm" onclick="ownerLogout()">Salir</button>
+        <button class="btn-icon text-sm px-3" onclick="ownerLogout()">Salir</button>
       </div>
     </header>
 
-    <div class="panel-filters">
+    <div class="filters-bar glass-panel">
       <button class="filter-btn active" data-filter="all" onclick="setFilter('all', this)">Todas</button>
       <button class="filter-btn f-downloaded" data-filter="downloaded" onclick="setFilter('downloaded', this)">↓ Descargadas</button>
       <button class="filter-btn f-liked" data-filter="liked" onclick="setFilter('liked', this)">✓ Me gustó</button>
@@ -51,25 +74,15 @@
       <button class="filter-btn" data-filter="pending" onclick="setFilter('pending', this)">⏳ Sin ver</button>
     </div>
 
-    <div class="panel-content">
+    <main class="main-content">
       <div class="section-label" id="section-label">Cargando…</div>
-      <div class="movie-grid" id="panel-grid">
-        <div class="empty-state">Cargando…</div>
+      <div class="panel-grid slide-up" id="panel-grid">
+        <div class="empty-state">Conectando al servidor...</div>
       </div>
-    </div>
+    </main>
 
   </div>
 
-  <script>
-    const rg = document.getElementById('reel-grid');
-    if (rg) {
-      for (let i = 0; i < 64; i++) {
-        const d = document.createElement('div');
-        d.className = 'reel-cell';
-        rg.appendChild(d);
-      }
-    }
-  </script>
   <script src="config.js"></script>
   <script src="supabase.js"></script>
   <script src="panel.js"></script>

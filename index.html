@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mi lista — Recomiéndame</title>
+  <title>Recomiéndame una peli</title>
   
   <!-- Fuentes para todos los temas -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -12,16 +12,20 @@
   
   <link rel="stylesheet" href="style.css" />
 </head>
-<body class="panel-body">
+<body>
 
+  <!-- Elementos de fondo dinámicos según el tema -->
   <div class="theme-backgrounds">
+    <!-- Orbes para Jellyfin -->
     <div class="bg-orb orb-cyan"></div>
     <div class="bg-orb orb-purple"></div>
     <div class="bg-orb orb-light"></div>
+    <!-- Ruido / CRT para Clásico y Apocalíptico -->
     <div class="bg-noise"></div>
     <div class="bg-crt-lines"></div>
   </div>
 
+  <!-- SELECTOR DE TEMAS GLOBAL -->
   <div class="theme-switcher">
     <select id="theme-select" onchange="changeTheme(this.value)">
       <option value="jellyfin">Tema: Jellyfin</option>
@@ -30,61 +34,101 @@
     </select>
   </div>
 
-  <!-- ── LOGIN PANEL ───────────────────────────── -->
-  <div id="screen-panel-login" class="screen active">
+  <!-- ── LOGIN ──────────────────────────────────── -->
+  <div id="screen-code" class="screen active">
     <div class="center-wrap fade-in">
       <div class="glass-panel login-box slide-up">
         <div class="glass-glare"></div>
-        <div class="brand-logo">🎬</div>
-        <h1 class="title">Mi <span class="text-accent">Lista</span></h1>
-        <p class="hint">Acceso de administrador del servidor.</p>
+        <div class="brand-logo">R</div>
+        <h1 class="title">Reco<span class="text-accent">miéndame</span></h1>
+        <p class="hint">Conéctate al servidor de películas para recomendarle una a tu amigo.</p>
         
         <div class="field-group">
           <div class="input-wrap">
-            <label>Código de Propietario</label>
-            <input type="password" id="owner-code-input" placeholder="Ingresa tu clave" />
+            <label>Nombre de Perfil</label>
+            <input type="text" id="input-name" placeholder="¿Quién eres?" autocomplete="off" />
           </div>
-          <p id="owner-error" class="error-msg"></p>
-          <button class="btn-main mt-4" onclick="ownerLogin()">Acceder al panel</button>
+          <div class="input-wrap">
+            <label>Código de Servidor</label>
+            <input type="password" id="input-code" placeholder="Escribe el código" />
+          </div>
+          <p id="code-error" class="error-msg"></p>
+          <button class="btn-main mt-4" onclick="enterApp()">Conectar al servidor</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ── PANEL MAIN ────────────────────────────── -->
-  <div id="screen-panel-main" class="screen">
+  <!-- ── SEARCH ─────────────────────────────────── -->
+  <div id="screen-search" class="screen">
     
     <header class="top-bar glass-panel">
       <div class="top-logo-wrap">
-        <div class="brand-logo small">🎬</div>
-        <span class="top-logo-text">Mi <span class="text-accent">Lista</span></span>
+        <div class="brand-logo small">R</div>
+        <span class="top-logo-text">Reco<span class="text-accent">miéndame</span></span>
       </div>
       
+      <div class="search-bar-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-input" placeholder="Buscar películas por título..." oninput="handleSearch(this.value)" autocomplete="off" />
+        <div class="spinner" id="spinner"></div>
+      </div>
+
       <div class="top-right">
-        <span class="count-pill" id="rec-count">0 películas</span>
-        <button class="btn-icon text-sm px-3" onclick="ownerLogout()">Salir</button>
+        <div class="user-badge">
+          <div class="user-avatar" id="top-user-avatar">?</div>
+          <span id="top-user-name" class="hidden-mobile"></span>
+        </div>
+        <button class="btn-icon" onclick="logoutToLogin()" title="Salir">✖</button>
       </div>
     </header>
 
-    <div class="filters-bar glass-panel">
-      <button class="filter-btn active" data-filter="all" onclick="setFilter('all', this)">Todas</button>
-      <button class="filter-btn f-downloaded" data-filter="downloaded" onclick="setFilter('downloaded', this)">↓ Descargadas</button>
-      <button class="filter-btn f-liked" data-filter="liked" onclick="setFilter('liked', this)">✓ Me gustó</button>
-      <button class="filter-btn f-disliked" data-filter="disliked" onclick="setFilter('disliked', this)">✕ No me gustó</button>
-      <button class="filter-btn" data-filter="pending" onclick="setFilter('pending', this)">⏳ Sin ver</button>
-    </div>
-
     <main class="main-content">
-      <div class="section-label" id="section-label">Cargando…</div>
-      <div class="panel-grid slide-up" id="panel-grid">
-        <div class="empty-state">Conectando al servidor...</div>
+      <h2 class="section-title">Resultados de búsqueda</h2>
+      <div id="results-container" class="results-grid slide-up">
+        <!-- Los resultados se inyectan aquí -->
+      </div>
+
+      <!-- MODAL DE CONFIRMACIÓN -->
+      <div id="confirm-panel" class="modal-overlay hidden">
+        <div class="modal-backdrop" onclick="cancelConfirm()"></div>
+        <div class="glass-panel modal-content slide-up">
+          <button class="modal-close" onclick="cancelConfirm()">✖</button>
+          
+          <div class="modal-body" id="confirm-content">
+            <!-- Contenido inyectado por JS -->
+          </div>
+
+          <div class="modal-footer">
+            <p id="confirm-feedback" class="error-msg"></p>
+            <div class="confirm-actions">
+              <button class="btn-main" id="confirm-btn" onclick="submitRecommendation()">Confirmar y Recomendar</button>
+              <button class="btn-ghost" onclick="cancelConfirm()">Cancelar</button>
+            </div>
+          </div>
+        </div>
       </div>
     </main>
+  </div>
 
+  <!-- ── SUCCESS ────────────────────────────────── -->
+  <div id="screen-success" class="screen">
+    <div class="center-wrap fade-in">
+      <div class="glass-panel success-box slide-up">
+        <div class="success-icon-wrap">
+          <div class="success-glow"></div>
+          <div class="success-icon">✓</div>
+        </div>
+        <h2 class="title" style="margin-bottom: 0.5rem;">¡Añadida al servidor!</h2>
+        <p class="hint" id="success-msg" style="margin-bottom: 2rem;"></p>
+        <button class="btn-main" onclick="recomendar()">Hacer otra recomendación</button>
+      </div>
+    </div>
   </div>
 
   <script src="config.js"></script>
   <script src="supabase.js"></script>
-  <script src="panel.js"></script>
+  <script src="tmdb.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
