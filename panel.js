@@ -1,19 +1,4 @@
-// ── Temas para el Panel ──────────────────────────
-function initTheme() {
-  const savedTheme = localStorage.getItem('recomovies-theme') || 'jellyfin';
-  document.documentElement.setAttribute('data-theme', savedTheme);
-  const select = document.getElementById('theme-select');
-  if(select) select.value = savedTheme;
-}
-
-function changeTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem('recomovies-theme', theme);
-}
-
-initTheme();
-
-// ── Panel de propietario ─────────────────────────
+// ── Panel de administrador ─────────────────────────
 let allRecs = [];
 let currentFilter = 'all';
 
@@ -27,7 +12,7 @@ async function ownerLogin() {
   const errEl = document.getElementById('owner-error');
 
   if (code !== CONFIG.OWNER_CODE) {
-    errEl.textContent = 'Código de propietario incorrecto.';
+    errEl.textContent = 'Clave incorrecta.';
     return;
   }
   errEl.textContent = '';
@@ -49,7 +34,7 @@ async function loadPanel() {
     allRecs = await db.getAll();
     renderPanel();
   } catch (e) {
-    grid.innerHTML = `<div class="empty-state" style="color:var(--error-color);">Error cargando datos. Verifica tu config de Supabase.</div>`;
+    grid.innerHTML = `<div class="empty-state" style="color:var(--error-color);">Error de conexión con Supabase.</div>`;
   }
 }
 
@@ -74,54 +59,53 @@ function renderPanel() {
   const recs = filtered();
   const total = allRecs.length;
 
-  document.getElementById('rec-count').textContent = total === 1 ? '1 película' : `${total} películas`;
+  document.getElementById('rec-count').textContent = total === 1 ? '1 película en la base de datos.' : `${total} películas en la base de datos.`;
 
-  const labelMap = { all: `${total} recomendaciones totales`, downloaded: 'Descargadas', liked: 'Me gustó', disliked: 'No me gustó', pending: 'Sin ver aún' };
+  const labelMap = { all: 'Todas las sugeridas ›', downloaded: 'Descargadas ›', liked: 'Te gustaron ›', disliked: 'No te gustaron ›', pending: 'Pendientes por ver ›' };
   document.getElementById('section-label').textContent = labelMap[currentFilter] || '';
 
   const grid = document.getElementById('panel-grid');
 
   if (!recs.length) {
     grid.innerHTML = allRecs.length
-      ? '<div class="empty-state">Sin películas en esta categoría.</div>'
-      : '<div class="empty-state">Todavía no hay recomendaciones.</div>';
+      ? '<div class="empty-state">No hay películas en esta categoría.</div>'
+      : '<div class="empty-state">Nadie ha sugerido películas todavía.</div>';
     return;
   }
 
   grid.innerHTML = recs.map(m => {
     const poster = m.poster_path
-      ? `<img src="https://image.tmdb.org/t/p/w342${m.poster_path}" alt="" loading="lazy" />`
-      : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:3rem;background:var(--panel-bg)">🎬</div>`;
+      ? `<img src="https://image.tmdb.org/t/p/w342${m.poster_path}" alt="" loading="lazy" style="width:100%; height:100%; object-fit:cover;" />`
+      : `<div class="jf-poster-ph">🎬</div>`;
     
     const year = m.release_date ? m.release_date.slice(0, 4) : '—';
     const date = new Date(m.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
 
-    const dlClass   = m.downloaded   ? ' s-dl'   : '';
-    const likeClass = m.liked === true  ? ' s-like' : '';
-    const badClass  = m.liked === false ? ' s-bad'  : '';
+    const dlClass   = m.downloaded   ? ' active-dl'   : '';
+    const likeClass = m.liked === true  ? ' active-like' : '';
+    const badClass  = m.liked === false ? ' active-bad'  : '';
 
     return `
-    <div class="movie-card" id="card-${m.id}">
-      <div class="card-poster-wrap">
+    <div class="jf-card" id="card-${m.id}" style="cursor:default;">
+      <div class="jf-poster-wrap">
         ${poster}
       </div>
-      <div class="card-info" style="padding: 1rem 1rem 0;">
-        <h3 class="card-title">${m.title}</h3>
-        <p class="card-meta">${year}</p>
-      </div>
-      <div class="rec-card-footer">
-        Añadida por <strong class="text-accent">${m.recommended_by}</strong> (${date})
-      </div>
-      <div class="rec-status-bar">
-        <button class="status-btn${dlClass}" id="dl-${m.id}" onclick="toggleDownload(${m.id})">
-          ${m.downloaded ? '⬇ Descargada' : '⬇ Descargar'}
-        </button>
-        <button class="status-btn${likeClass}" id="like-${m.id}" onclick="toggleLike(${m.id}, true)">
-          ✓ Sí
-        </button>
-        <button class="status-btn${badClass}" id="bad-${m.id}" onclick="toggleLike(${m.id}, false)">
-          ✕ No
-        </button>
+      <div class="jf-card-info" style="text-align:left;">
+        <div class="jf-card-title">${m.title}</div>
+        <div class="jf-card-meta">${year}</div>
+        <div class="rec-footer">Por <strong>${m.recommended_by}</strong> (${date})</div>
+        
+        <div class="rec-actions">
+          <button class="action-btn${dlClass}" id="dl-${m.id}" onclick="toggleDownload(${m.id})" title="Descargada">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          </button>
+          <button class="action-btn${likeClass}" id="like-${m.id}" onclick="toggleLike(${m.id}, true)" title="Me gustó">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+          </button>
+          <button class="action-btn${badClass}" id="bad-${m.id}" onclick="toggleLike(${m.id}, false)" title="No me gustó">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+          </button>
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -151,11 +135,9 @@ function applyStatusClasses(id, rec) {
   const badBtn  = document.getElementById(`bad-${id}`);
   if (!dlBtn) return;
 
-  dlBtn.className   = 'status-btn' + (rec.downloaded   ? ' s-dl'   : '');
-  dlBtn.textContent = rec.downloaded ? '⬇ Descargada' : '⬇ Descargar';
-  
-  likeBtn.className = 'status-btn' + (rec.liked === true  ? ' s-like' : '');
-  badBtn.className  = 'status-btn' + (rec.liked === false ? ' s-bad'  : '');
+  dlBtn.className   = 'action-btn' + (rec.downloaded   ? ' active-dl'   : '');
+  likeBtn.className = 'action-btn' + (rec.liked === true  ? ' active-like' : '');
+  badBtn.className  = 'action-btn' + (rec.liked === false ? ' active-bad'  : '');
 }
 
 document.getElementById('owner-code-input')?.addEventListener('keydown', e => {

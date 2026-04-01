@@ -1,127 +1,143 @@
 <!DOCTYPE html>
-<html lang="es" data-theme="jellyfin">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Recomiéndame una peli</title>
+  <title>Recomovie - Sugiere una película</title>
   
-  <!-- Fuentes para todos los temas -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700;900&family=VT323&family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <!-- Elementos de fondo dinámicos según el tema -->
-  <div class="theme-backgrounds">
-    <!-- Orbes para Jellyfin -->
-    <div class="bg-orb orb-cyan"></div>
-    <div class="bg-orb orb-purple"></div>
-    <div class="bg-orb orb-light"></div>
-    <!-- Ruido / CRT para Clásico y Apocalíptico -->
-    <div class="bg-noise"></div>
-    <div class="bg-crt-lines"></div>
-  </div>
-
-  <!-- SELECTOR DE TEMAS GLOBAL -->
-  <div class="theme-switcher">
-    <select id="theme-select" onchange="changeTheme(this.value)">
-      <option value="jellyfin">Tema: Jellyfin</option>
-      <option value="classic">Tema: Clásico</option>
-      <option value="apocalyptic">Tema: Apocalíptico</option>
-    </select>
-  </div>
-
   <!-- ── LOGIN ──────────────────────────────────── -->
   <div id="screen-code" class="screen active">
     <div class="center-wrap fade-in">
-      <div class="glass-panel login-box slide-up">
-        <div class="glass-glare"></div>
-        <div class="brand-logo">R</div>
-        <h1 class="title">Reco<span class="text-accent">miéndame</span></h1>
-        <p class="hint">Conéctate al servidor de películas para recomendarle una a tu amigo.</p>
+      <div class="login-box">
+        <div class="brand-logo">
+          <svg viewBox="0 0 24 24" fill="currentColor" class="logo-icon"><path d="M12 2L22 7L12 12L2 7L12 2ZM2 17L12 22L22 17V10.5L12 15.5L2 10.5V17Z"/></svg>
+        </div>
+        <h1 class="title">Recomovie</h1>
+        <p class="hint">Conéctate al servidor para recomendar tu película favorita.</p>
         
         <div class="field-group">
           <div class="input-wrap">
-            <label>Nombre de Perfil</label>
-            <input type="text" id="input-name" placeholder="¿Quién eres?" autocomplete="off" />
+            <input type="text" id="input-name" placeholder="Nombre de usuario" autocomplete="off" />
           </div>
           <div class="input-wrap">
-            <label>Código de Servidor</label>
-            <input type="password" id="input-code" placeholder="Escribe el código" />
+            <input type="password" id="input-code" placeholder="Código de acceso" />
           </div>
           <p id="code-error" class="error-msg"></p>
-          <button class="btn-main mt-4" onclick="enterApp()">Conectar al servidor</button>
+          <button class="btn-main mt-4" onclick="enterApp()">Iniciar sesión</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ── SEARCH ─────────────────────────────────── -->
+  <!-- ── SEARCH / INICIO ────────────────────────── -->
   <div id="screen-search" class="screen">
     
-    <header class="top-bar glass-panel">
+    <header class="top-bar">
       <div class="top-logo-wrap">
-        <div class="brand-logo small">R</div>
-        <span class="top-logo-text">Reco<span class="text-accent">miéndame</span></span>
+        <svg viewBox="0 0 24 24" fill="currentColor" class="logo-icon-small"><path d="M12 2L22 7L12 12L2 7L12 2ZM2 17L12 22L22 17V10.5L12 15.5L2 10.5V17Z"/></svg>
+        <span class="top-logo-text">Recomovie</span>
       </div>
       
-      <div class="search-bar-wrap">
-        <span class="search-icon">🔍</span>
-        <input type="text" id="search-input" placeholder="Buscar películas por título..." oninput="handleSearch(this.value)" autocomplete="off" />
-        <div class="spinner" id="spinner"></div>
-      </div>
-
       <div class="top-right">
-        <div class="user-badge">
+        <div class="user-badge" title="Usuario activo">
           <div class="user-avatar" id="top-user-avatar">?</div>
           <span id="top-user-name" class="hidden-mobile"></span>
         </div>
-        <button class="btn-icon" onclick="logoutToLogin()" title="Salir">✖</button>
+        <button class="btn-icon" onclick="logoutToLogin()" title="Cerrar sesión">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        </button>
       </div>
     </header>
 
     <main class="main-content">
-      <h2 class="section-title">Resultados de búsqueda</h2>
-      <div id="results-container" class="results-grid slide-up">
-        <!-- Los resultados se inyectan aquí -->
-      </div>
-
-      <!-- MODAL DE CONFIRMACIÓN -->
-      <div id="confirm-panel" class="modal-overlay hidden">
-        <div class="modal-backdrop" onclick="cancelConfirm()"></div>
-        <div class="glass-panel modal-content slide-up">
-          <button class="modal-close" onclick="cancelConfirm()">✖</button>
-          
-          <div class="modal-body" id="confirm-content">
-            <!-- Contenido inyectado por JS -->
-          </div>
-
-          <div class="modal-footer">
-            <p id="confirm-feedback" class="error-msg"></p>
-            <div class="confirm-actions">
-              <button class="btn-main" id="confirm-btn" onclick="submitRecommendation()">Confirmar y Recomendar</button>
-              <button class="btn-ghost" onclick="cancelConfirm()">Cancelar</button>
-            </div>
-          </div>
+      
+      <!-- Buscador tipo Hero -->
+      <div class="hero-search">
+        <h1 class="hero-title">Sugerir Película</h1>
+        <p class="hero-subtitle">Busca y selecciona la película que quieres agregar a la lista.</p>
+        
+        <div class="search-box">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="search-input" placeholder="Buscar películas..." oninput="handleSearch(this.value)" autocomplete="off" />
+          <button id="clear-search-btn" class="clear-btn hidden" onclick="clearSearch()" title="Borrar búsqueda">✕</button>
+          <div class="spinner" id="spinner"></div>
         </div>
       </div>
+
+      <!-- Sección: Últimas recomendaciones (Por defecto) -->
+      <div id="latest-section" class="slide-up">
+        <h2 class="section-title">Añadidas recientemente ›</h2>
+        <div id="latest-container" class="jf-grid">
+          <!-- Cargando... -->
+        </div>
+      </div>
+
+      <!-- Sección: Resultados de búsqueda -->
+      <div id="search-results-section" class="hidden">
+        <h2 class="section-title">Resultados de la búsqueda ›</h2>
+        <div id="results-container" class="jf-grid">
+          <!-- Los resultados se inyectan aquí -->
+        </div>
+      </div>
+
     </main>
   </div>
 
-  <!-- ── SUCCESS ────────────────────────────────── -->
-  <div id="screen-success" class="screen">
-    <div class="center-wrap fade-in">
-      <div class="glass-panel success-box slide-up">
-        <div class="success-icon-wrap">
-          <div class="success-glow"></div>
-          <div class="success-icon">✓</div>
+  <!-- ── MODAL CONFIRMACIÓN ─────────────────────── -->
+  <div id="confirm-panel" class="modal-overlay hidden">
+    <div class="modal-backdrop" onclick="cancelConfirm()"></div>
+    <div class="modal-content slide-up">
+      
+      <!-- Backdrop estilo Jellyfin -->
+      <div class="modal-hero">
+        <div id="confirm-backdrop" class="modal-hero-bg"></div>
+        <div class="modal-hero-gradient"></div>
+        <button class="modal-close" onclick="cancelConfirm()">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="modal-poster-wrap">
+          <img id="confirm-poster" class="modal-poster" src="" alt="Poster" />
         </div>
-        <h2 class="title" style="margin-bottom: 0.5rem;">¡Añadida al servidor!</h2>
+        
+        <div class="modal-details">
+          <h2 class="modal-title" id="confirm-title"></h2>
+          <div class="modal-meta" id="confirm-meta"></div>
+          
+          <div class="confirm-actions mt-4">
+            <button class="btn-main" id="confirm-btn" onclick="submitRecommendation()">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+              Añadir a Recomovie
+            </button>
+          </div>
+          
+          <p id="confirm-feedback" class="error-msg"></p>
+          
+          <h3 class="modal-subtitle">Sinopsis</h3>
+          <p class="modal-desc" id="confirm-overview"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SUCCESS ────────────────────────────────── -->
+  <div id="screen-success" class="screen hidden">
+    <div class="center-wrap fade-in">
+      <div class="success-box">
+        <div class="success-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+        </div>
+        <h2 class="title" style="margin-bottom: 0.5rem;">Sugerencia añadida</h2>
         <p class="hint" id="success-msg" style="margin-bottom: 2rem;"></p>
-        <button class="btn-main" onclick="recomendar()">Hacer otra recomendación</button>
+        <button class="btn-main" onclick="recomendar()">Recomendar otra película</button>
       </div>
     </div>
   </div>
