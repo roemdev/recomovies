@@ -1,118 +1,90 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="jellyfin">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Recomiéndame una peli</title>
+  <title>Mi lista — Recomiéndame</title>
+  
+  <!-- Fuentes para todos los temas -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700;900&family=VT323&family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  
   <link rel="stylesheet" href="style.css" />
 </head>
-<body>
+<body class="panel-body">
 
-  <!-- ── LOGIN ──────────────────────────────────── -->
-  <div id="screen-code" class="screen active">
-    <div class="login-layout">
+  <div class="theme-backgrounds">
+    <div class="bg-orb orb-cyan"></div>
+    <div class="bg-orb orb-purple"></div>
+    <div class="bg-orb orb-light"></div>
+    <div class="bg-noise"></div>
+    <div class="bg-crt-lines"></div>
+  </div>
 
-      <div class="login-art">
-        <div class="login-art-stripe"></div>
-        <div class="reel-grid" id="reel-grid"></div>
-        <div class="login-art-quote">
-          "El cine es una ventana abierta<br/>a todos los sueños del mundo."
-          <cite>— René Clair</cite>
+  <div class="theme-switcher">
+    <select id="theme-select" onchange="changeTheme(this.value)">
+      <option value="jellyfin">Tema: Jellyfin</option>
+      <option value="classic">Tema: Clásico</option>
+      <option value="apocalyptic">Tema: Apocalíptico</option>
+    </select>
+  </div>
+
+  <!-- ── LOGIN PANEL ───────────────────────────── -->
+  <div id="screen-panel-login" class="screen active">
+    <div class="center-wrap fade-in">
+      <div class="glass-panel login-box slide-up">
+        <div class="glass-glare"></div>
+        <div class="brand-logo">🎬</div>
+        <h1 class="title">Mi <span class="text-accent">Lista</span></h1>
+        <p class="hint">Acceso de administrador del servidor.</p>
+        
+        <div class="field-group">
+          <div class="input-wrap">
+            <label>Código de Propietario</label>
+            <input type="password" id="owner-code-input" placeholder="Ingresa tu clave" />
+          </div>
+          <p id="owner-error" class="error-msg"></p>
+          <button class="btn-main mt-4" onclick="ownerLogin()">Acceder al panel</button>
         </div>
       </div>
-
-      <div class="login-form-side">
-        <div class="eyebrow">Watchlist colectiva</div>
-        <h1 class="login-title">RECO<em>MIÉNDAME</em></h1>
-        <p class="login-sub">Tu amigo quiere saber qué ver esta noche.<br/>Dile qué no puede perderse.</p>
-        <div class="field">
-          <input type="text" id="input-name" placeholder="Tu nombre" autocomplete="off" />
-        </div>
-        <div class="field">
-          <input type="password" id="input-code" placeholder="Código de acceso" />
-        </div>
-        <button class="btn-main" onclick="enterApp()">Entrar →</button>
-        <p id="code-error" class="error-msg"></p>
-      </div>
-
     </div>
   </div>
 
-  <!-- ── SEARCH ─────────────────────────────────── -->
-  <div id="screen-search" class="screen">
-    <header class="top-bar">
-      <div class="top-logo">RECO<span>MIÉNDAME</span></div>
+  <!-- ── PANEL MAIN ────────────────────────────── -->
+  <div id="screen-panel-main" class="screen">
+    
+    <header class="top-bar glass-panel">
+      <div class="top-logo-wrap">
+        <div class="brand-logo small">🎬</div>
+        <span class="top-logo-text">Mi <span class="text-accent">Lista</span></span>
+      </div>
+      
       <div class="top-right">
-        <span class="top-user" id="top-user-name"></span>
-        <button class="btn-ghost sm" onclick="logoutToLogin()">Salir</button>
+        <span class="count-pill" id="rec-count">0 películas</span>
+        <button class="btn-icon text-sm px-3" onclick="ownerLogout()">Salir</button>
       </div>
     </header>
 
-    <div class="search-body">
-      <aside class="search-sidebar">
-        <div class="search-heading">¿QUÉ<em>VER?</em></div>
-        <p class="search-hint">Busca la película que le recomendarías a tu amigo. Si ya fue recomendada por alguien, aparecerá marcada.</p>
-        <div class="search-input-wrap">
-          <input type="text" id="search-input" placeholder="Busca por título…" oninput="handleSearch(this.value)" autocomplete="off" />
-          <div class="spinner" id="spinner"></div>
-        </div>
-      </aside>
-
-      <main class="search-main">
-        <div id="results-label" class="results-label" style="display:none;">Resultados</div>
-        <div id="results-container"></div>
-
-        <div id="confirm-panel" class="confirm-panel hidden">
-          <div class="confirm-banner">
-            <div class="confirm-banner-blur" id="confirm-blur"></div>
-            <div class="confirm-banner-front">
-              <div id="confirm-front-poster"></div>
-              <div>
-                <div class="confirm-front-title" id="confirm-front-title"></div>
-                <div class="confirm-front-meta" id="confirm-front-meta"></div>
-              </div>
-            </div>
-          </div>
-          <div class="confirm-body">
-            <div class="confirm-overview-quote" id="confirm-overview"></div>
-            <div id="confirm-feedback" class="confirm-feedback"></div>
-            <div class="confirm-actions">
-              <button class="btn-main" id="confirm-btn" onclick="submitRecommendation()">Esta es →</button>
-              <button class="btn-ghost" onclick="cancelConfirm()">Cancelar</button>
-            </div>
-          </div>
-        </div>
-      </main>
+    <div class="filters-bar glass-panel">
+      <button class="filter-btn active" data-filter="all" onclick="setFilter('all', this)">Todas</button>
+      <button class="filter-btn f-downloaded" data-filter="downloaded" onclick="setFilter('downloaded', this)">↓ Descargadas</button>
+      <button class="filter-btn f-liked" data-filter="liked" onclick="setFilter('liked', this)">✓ Me gustó</button>
+      <button class="filter-btn f-disliked" data-filter="disliked" onclick="setFilter('disliked', this)">✕ No me gustó</button>
+      <button class="filter-btn" data-filter="pending" onclick="setFilter('pending', this)">⏳ Sin ver</button>
     </div>
+
+    <main class="main-content">
+      <div class="section-label" id="section-label">Cargando…</div>
+      <div class="panel-grid slide-up" id="panel-grid">
+        <div class="empty-state">Conectando al servidor...</div>
+      </div>
+    </main>
+
   </div>
 
-  <!-- ── SUCCESS ────────────────────────────────── -->
-  <div id="screen-success" class="screen">
-    <header class="top-bar">
-      <div class="top-logo">RECO<span>MIÉNDAME</span></div>
-    </header>
-    <div class="success-wrap">
-      <div class="success-circle">✓</div>
-      <h2 class="success-title">LISTO</h2>
-      <p class="success-msg" id="success-msg"></p>
-      <button class="btn-ghost" onclick="recomendar()">Recomendar otra</button>
-    </div>
-  </div>
-
-  <script>
-    // Reel grid decorativo
-    const rg = document.getElementById('reel-grid');
-    if (rg) {
-      for (let i = 0; i < 64; i++) {
-        const d = document.createElement('div');
-        d.className = 'reel-cell';
-        rg.appendChild(d);
-      }
-    }
-  </script>
   <script src="config.js"></script>
   <script src="supabase.js"></script>
-  <script src="tmdb.js"></script>
-  <script src="app.js"></script>
+  <script src="panel.js"></script>
 </body>
 </html>

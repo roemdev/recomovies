@@ -1,9 +1,21 @@
-// ── Panel de propietario ─────────────────────────
+// ── Temas para el Panel ──────────────────────────
+function initTheme() {
+  const savedTheme = localStorage.getItem('recomovies-theme') || 'jellyfin';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  const select = document.getElementById('theme-select');
+  if(select) select.value = savedTheme;
+}
 
+function changeTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('recomovies-theme', theme);
+}
+
+initTheme();
+
+// ── Panel de propietario ─────────────────────────
 let allRecs = [];
 let currentFilter = 'all';
-// Estado local de botones (se persiste en Supabase)
-// formato: { [id]: { downloaded: bool, liked: null|true|false } }
 
 function show(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -13,7 +25,11 @@ function show(id) {
 async function ownerLogin() {
   const code = document.getElementById('owner-code-input').value.trim();
   const errEl = document.getElementById('owner-error');
-  if (code !== CONFIG.OWNER_CODE) { errEl.textContent = 'Código incorrecto.'; return; }
+
+  if (code !== CONFIG.OWNER_CODE) {
+    errEl.textContent = 'Código de propietario incorrecto.';
+    return;
+  }
   errEl.textContent = '';
   show('screen-panel-main');
   await loadPanel();
@@ -21,18 +37,19 @@ async function ownerLogin() {
 
 function ownerLogout() {
   document.getElementById('owner-code-input').value = '';
+  document.getElementById('panel-grid').innerHTML = '<div class="empty-state">Conectando al servidor...</div>';
   show('screen-panel-login');
 }
 
 async function loadPanel() {
   const grid = document.getElementById('panel-grid');
-  grid.innerHTML = '<div class="empty-state">Cargando…</div>';
+  grid.innerHTML = '<div class="empty-state">Sincronizando base de datos...</div>';
 
   try {
     allRecs = await db.getAll();
     renderPanel();
   } catch (e) {
-    grid.innerHTML = `<div class="empty-state" style="color:var(--accent2);">Error cargando datos. Verifica tu config.</div>`;
+    grid.innerHTML = `<div class="empty-state" style="color:var(--error-color);">Error cargando datos. Verifica tu config de Supabase.</div>`;
   }
 }
 
@@ -57,70 +74,57 @@ function renderPanel() {
   const recs = filtered();
   const total = allRecs.length;
 
-  document.getElementById('rec-count').textContent =
-    total === 1 ? '1 película' : `${total} películas`;
+  document.getElementById('rec-count').textContent = total === 1 ? '1 película' : `${total} películas`;
 
-  const label = document.getElementById('section-label');
-  const labelMap = { all: `${total} recomendaciones`, downloaded: 'Descargadas', liked: 'Me gustó', disliked: 'No me gustó', pending: 'Sin ver aún' };
-  label.textContent = labelMap[currentFilter] || '';
+  const labelMap = { all: `${total} recomendaciones totales`, downloaded: 'Descargadas', liked: 'Me gustó', disliked: 'No me gustó', pending: 'Sin ver aún' };
+  document.getElementById('section-label').textContent = labelMap[currentFilter] || '';
 
   const grid = document.getElementById('panel-grid');
 
   if (!recs.length) {
     grid.innerHTML = allRecs.length
       ? '<div class="empty-state">Sin películas en esta categoría.</div>'
-      : '<div class="empty-state">Todavía no hay recomendaciones.<br/>Pásale el link a tus amigos.</div>';
+      : '<div class="empty-state">Todavía no hay recomendaciones.</div>';
     return;
   }
 
-  grid.innerHTML = recs.map(m => movieCard(m)).join('');
-}
+  grid.innerHTML = recs.map(m => {
+    const poster = m.poster_path
+      ? `<img src="https://image.tmdb.org/t/p/w342${m.poster_path}" alt="" loading="lazy" />`
+      : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:3rem;background:var(--panel-bg)">🎬</div>`;
+    
+    const year = m.release_date ? m.release_date.slice(0, 4) : '—';
+    const date = new Date(m.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
 
-function movieCard(m) {
-  const poster = m.poster_path
-    ? `<img class="movie-card-poster" src="https://image.tmdb.org/t/p/w154${m.poster_path}" alt="" loading="lazy" />`
-    : `<div class="movie-card-poster-ph">🎬</div>`;
+    const dlClass   = m.downloaded   ? ' s-dl'   : '';
+    const likeClass = m.liked === true  ? ' s-like' : '';
+    const badClass  = m.liked === false ? ' s-bad'  : '';
 
-  const year   = m.release_date ? m.release_date.slice(0, 4) : '—';
-  const rating = m.vote_average  ? parseFloat(m.vote_average).toFixed(1) + ' ★' : '';
-  const date   = new Date(m.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
-
-  // Status classes
-  const dlClass   = m.downloaded   ? ' s-dl'   : '';
-  const likeClass = m.liked === true  ? ' s-like' : '';
-  const badClass  = m.liked === false ? ' s-bad'  : '';
-
-  const overview = m.overview
-    ? `<div class="movie-card-overview">${m.overview}</div>`
-    : '';
-
-  return `<div class="movie-card" id="card-${m.id}">
-    <div class="save-dot" id="dot-${m.id}"></div>
-    <div class="movie-card-top">
-      <div class="movie-card-poster-col">${poster}</div>
-      <div class="movie-card-info">
-        <div class="movie-card-year">${year}</div>
-        <div class="movie-card-title">${m.title}</div>
-        ${rating ? `<div class="movie-card-rating">${rating}</div>` : ''}
-        <div class="movie-card-who">Por <strong>${m.recommended_by}</strong> · ${date}</div>
+    return `
+    <div class="movie-card" id="card-${m.id}">
+      <div class="card-poster-wrap">
+        ${poster}
       </div>
-    </div>
-    ${overview}
-    <div class="movie-card-status">
-      <button class="status-btn${dlClass}" id="dl-${m.id}" onclick="toggleDownload(${m.id})">
-        <span class="status-icon">↓</span>
-        <span>${m.downloaded ? 'Descargada' : 'Descargar'}</span>
-      </button>
-      <button class="status-btn${likeClass}" id="like-${m.id}" onclick="toggleLike(${m.id}, true)">
-        <span class="status-icon">✓</span>
-        <span>${m.liked === true ? 'Me gustó' : 'Me gustó'}</span>
-      </button>
-      <button class="status-btn${badClass}" id="bad-${m.id}" onclick="toggleLike(${m.id}, false)">
-        <span class="status-icon">✕</span>
-        <span>${m.liked === false ? 'No me gustó' : 'No me gustó'}</span>
-      </button>
-    </div>
-  </div>`;
+      <div class="card-info" style="padding: 1rem 1rem 0;">
+        <h3 class="card-title">${m.title}</h3>
+        <p class="card-meta">${year}</p>
+      </div>
+      <div class="rec-card-footer">
+        Añadida por <strong class="text-accent">${m.recommended_by}</strong> (${date})
+      </div>
+      <div class="rec-status-bar">
+        <button class="status-btn${dlClass}" id="dl-${m.id}" onclick="toggleDownload(${m.id})">
+          ${m.downloaded ? '⬇ Descargada' : '⬇ Descargar'}
+        </button>
+        <button class="status-btn${likeClass}" id="like-${m.id}" onclick="toggleLike(${m.id}, true)">
+          ✓ Sí
+        </button>
+        <button class="status-btn${badClass}" id="bad-${m.id}" onclick="toggleLike(${m.id}, false)">
+          ✕ No
+        </button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 async function toggleDownload(id) {
@@ -129,17 +133,16 @@ async function toggleDownload(id) {
   const newVal = !rec.downloaded;
   rec.downloaded = newVal;
   applyStatusClasses(id, rec);
-  await saveStatus(id, { downloaded: newVal });
+  await db.updateStatus(id, { downloaded: newVal });
 }
 
 async function toggleLike(id, val) {
   const rec = allRecs.find(r => r.id === id);
   if (!rec) return;
-  // Toggle: si ya está activo, lo quita (null); si no, lo pone
   const newVal = rec.liked === val ? null : val;
   rec.liked = newVal;
   applyStatusClasses(id, rec);
-  await saveStatus(id, { liked: newVal });
+  await db.updateStatus(id, { liked: newVal });
 }
 
 function applyStatusClasses(id, rec) {
@@ -149,22 +152,12 @@ function applyStatusClasses(id, rec) {
   if (!dlBtn) return;
 
   dlBtn.className   = 'status-btn' + (rec.downloaded   ? ' s-dl'   : '');
+  dlBtn.textContent = rec.downloaded ? '⬇ Descargada' : '⬇ Descargar';
+  
   likeBtn.className = 'status-btn' + (rec.liked === true  ? ' s-like' : '');
   badBtn.className  = 'status-btn' + (rec.liked === false ? ' s-bad'  : '');
 }
 
-async function saveStatus(id, patch) {
-  const dot = document.getElementById(`dot-${id}`);
-  if (dot) dot.classList.add('on');
-  try {
-    await db.updateStatus(id, patch);
-  } catch (e) {
-    console.error('Error guardando estado:', e);
-  } finally {
-    if (dot) dot.classList.remove('on');
-  }
-}
-
-document.getElementById('owner-code-input').addEventListener('keydown', e => {
+document.getElementById('owner-code-input')?.addEventListener('keydown', e => {
   if (e.key === 'Enter') ownerLogin();
 });
